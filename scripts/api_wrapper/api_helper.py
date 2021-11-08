@@ -25,7 +25,7 @@ with open('secrets.txt') as f:
 #       unseen.add(address)
 
 def get_neighbors_verbose(ip):
-  router = Api(ip, user='', password='')
+  router = Api(ip, user=USER, password=PASSWORD)
   return router.talk('/routing/ospf/neighbor/print')
 
 def get_neighbors(ip):
