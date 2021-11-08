@@ -7,7 +7,7 @@ const app = express();
 //set app view engine
 app.set("view engine", "ejs");
 
-app.get("/", async (req, res) => {
+app.get("/fetch_nodes", async (req, res) => {
   const auth = new google.auth.GoogleAuth({
     keyFile: "keys.json", //the key file
     //url to spreadsheets API
@@ -26,11 +26,22 @@ app.get("/", async (req, res) => {
   const readData = await googleSheetsInstance.spreadsheets.values.get({
     auth, //auth object
     spreadsheetId, // spreadsheet id
-    range: "Form Responses 1!A1:AO10", //range of cells to read from.
+    range: "Form Responses 1!P2:AO10487", //range of cells to read from.
   })
-
+  let data = [];
+  for (let i = 0; i < readData.data.values.length; i++) {
+    if (readData.data.values[i][0] != 'Installed') continue;
+    let row = {};
+    row['id'] = readData.data.values[i][8];
+    row['nn'] = readData.data.values[i][9];
+    row['lat'] = readData.data.values[i][23];
+    row['lng'] = readData.data.values[i][24];
+    row['alt'] = readData.data.values[i][25];
+    data.push(row);
+  }
   //send the data reae with the response
-  res.send(readData.data)
+  // console.log(readData.data.values);
+  res.send(data)
 })
 
 const port = 3000;
