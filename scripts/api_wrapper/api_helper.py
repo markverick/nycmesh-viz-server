@@ -1,10 +1,11 @@
 from RouterOS_API.routeros_api import Api
 
 with open('secrets.txt') as f:
-  USER = f.readline()
-  PASSWORD = f.readline()
+  USER = f.readline().strip()
+  PASSWORD = f.readline().strip()
 
-
+print('user: ' + USER)
+print('password: ' + PASSWORD)
 # inital demo code
 # unseen = {'10.69.40.26'}
 # seen = set()
@@ -26,8 +27,9 @@ with open('secrets.txt') as f:
 
 def get_neighbors_verbose(ip):
   router = Api(ip, user=USER, password=PASSWORD)
-  return router.talk('/routing/ospf/neighbor/print')
+  routes = router.talk('/routing/ospf/neighbor/print')
+  return routes
 
 def get_neighbors(ip):
   routes = get_neighbors_verbose(ip)
-  return ({route["address"], route["interface"]} for route in routes)
+  return [{route["address"], route["interface"]} for route in routes]
