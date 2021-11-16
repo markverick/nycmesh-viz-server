@@ -32,4 +32,4 @@ def get_neighbors_verbose(ip):
 
 def get_neighbors(ip):
   routes = get_neighbors_verbose(ip)
-  return [{route["address"], route["interface"]} for route in routes]
+  return [[ip, route["address"], route["interface"]] for route in routes]
