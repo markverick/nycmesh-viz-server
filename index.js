@@ -14,12 +14,19 @@ const EDGE_COST = {
 let adj;
 edgeLoader('scripts/edges_set.csv', updateAdj);
 console.log('edge cost loaded');
-console.log(adj);
 
-//initilize express
+// Initilize express
 const app = express();
 
-//set app view engine
+// Set CORS policy
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "http://localhost:3001");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
+
+// Set app view engine
 app.set("view engine", "ejs");
 
 // Set bodyparser
@@ -29,7 +36,7 @@ app.use(bodyParser.json());
 app.get("/path_finding", async (req, res) => {
   let x = req.query['node1'];
   let y = req.query['node2'];
-  let badNodes = req.query['bad_nodes'] == undefined? []: req.query['bad_nodes'].split(',');
+  let badNodes = req.query['disabled_node'] == undefined? []: req.query['disabled_node'].split(',');
   result = pathFinding(x, y, badNodes);
   res.send(result);
 });
@@ -41,15 +48,15 @@ app.get("/fetch_nodes", async (req, res) => {
     scopes: "https://www.googleapis.com/auth/spreadsheets.readonly", 
   });
 
-  //Auth client Object
+  // Auth client Object
   const authClientObject = await auth.getClient();
 
-  //Google sheets instance
+  // Google sheets instance
   const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
 
   const spreadsheetId = "1gEnDuwqIQtm-uWsF7ZlXEDZWEyrGtqpj-mGXhQldSK4";
 
-  //Read front the spreadsheet
+  // Read front the spreadsheet
   const readData = await googleSheetsInstance.spreadsheets.values.get({
     auth, //auth object
     spreadsheetId, // spreadsheet id
@@ -66,7 +73,7 @@ app.get("/fetch_nodes", async (req, res) => {
     row['alt'] = readData.data.values[i][25];
     data.push(row);
   }
-  //send the data reae with the response
+  // Send the data reae with the response
   // console.log(readData.data.values);
   res.send(data)
 })
@@ -74,12 +81,6 @@ app.get("/fetch_nodes", async (req, res) => {
 const port = 3000;
 app.listen(port, ()=>{
     console.log(`server started on ${port}`)
-});
-
-app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3001");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
 });
 
 class Vertex {
@@ -142,7 +143,7 @@ function pathFinding(x, y, badNodes) {
   let dist = {};
   let prev = {};
   let result = [];
-  // console.log(adj)
+  // console.log(badNodes)
   for (let v in adj) {
     dist[v] = Number.MAX_VALUE;
     // console.log(v);
@@ -151,10 +152,12 @@ function pathFinding(x, y, badNodes) {
   pq.add(new Vertex(x, 0));
   while (!pq.isEmpty()) {
     let u = pq.poll();
+    if (badNodes.includes(u.u)) {
+      continue;
+    }
     // console.log(adj[u.v]);
     for (let v of adj[u.v]) {
-      // console.log(v);
-      if (v.v in badNodes) {
+      if (badNodes.includes(v.v)) {
         continue;
       }
       if (u.w + v.w < dist[v.v] ) {
