@@ -18,8 +18,12 @@
   },
   "homepage": "https://github.com/markverick/nycmesh-viz-server#readme",
   "dependencies": {
+    "csv-parser": "^3.0.0",
     "express": "^4.17.1",
+    "fastpriorityqueue": "^0.7.1",
+    "fs": "^0.0.1-security",
     "googleapis": "^89.0.0",
-    "nodemon": "^2.0.14"
+    "nodemon": "^2.0.14",
+    "queue": "^6.0.2"
   }
 }

@@ -1,11 +1,38 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 const { google } = require("googleapis");
+const csv = require('csv-parser');
+const fs = require('fs');
+const fastPriorityQueue = require('fastpriorityqueue');
+
+// Loading edges
+const EDGE_COST = {
+  mesh: 10,
+  wds: 100
+}
+// TODO: Change path cost from
+let adj;
+edgeLoader('scripts/edges_set.csv', updateAdj);
+console.log('edge cost loaded');
+console.log(adj);
 
 //initilize express
 const app = express();
 
 //set app view engine
 app.set("view engine", "ejs");
+
+// Set bodyparser
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+app.get("/path_finding", async (req, res) => {
+  let x = req.query['node1'];
+  let y = req.query['node2'];
+  let badNodes = req.query['bad_nodes'] == undefined? []: req.query['bad_nodes'].split(',');
+  result = pathFinding(x, y, badNodes);
+  res.send(result);
+});
 
 app.get("/fetch_nodes", async (req, res) => {
   const auth = new google.auth.GoogleAuth({
@@ -54,3 +81,97 @@ app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
+
+class Vertex {
+  constructor(v, w) {
+    this.v = v;
+    this.w = w;
+  }
+}
+
+// Return adjacency list
+function edgeLoader(filename, callback) {
+  let edgeSet = new Set();
+  // let edges = [];
+  let adj = {};
+  
+  fs.createReadStream(filename)
+  .pipe(csv(['x', 'y', 'type']))
+  .on('data', (data) => {
+    // Eliminate duplicates
+    const str1 = data['x'] + data['y'];
+    const str2 = data['y'] + data['x'];
+    if (!edgeSet.has(str1) && !edgeSet.has(str2)) {
+      edgeSet.add(str1);
+      let cost = 20;
+      if (data['type'] == 'mesh' || data['type'] == 'wds') {
+        cost = EDGE_COST[data['type']]
+      }
+      // data['cost'] = EDGE_COST[data['type']];
+      // edges.push(data);
+      if (adj[data['x']] == undefined) {
+        adj[data['x']] = [];
+      }
+      if (adj[data['y']] == undefined) {
+        adj[data['y']] = [];
+      }
+      adj[data['x']].push(new Vertex(data['y'], cost));
+      adj[data['y']].push(new Vertex(data['x'], cost));
+    }
+  })
+
+  .on('end', () => {
+    // console.log(adj);
+    callback(adj);
+    return;
+  });
+}
+
+// Callback function to update adjacency list
+function updateAdj(val) {
+  adj = val;
+}
+
+
+
+// Using Dijkstra Algorithm
+function pathFinding(x, y, badNodes) {
+  let pq = new fastPriorityQueue(function(a, b) {
+    return a.w < b.w;
+  });
+  let dist = {};
+  let prev = {};
+  let result = [];
+  // console.log(adj)
+  for (let v in adj) {
+    dist[v] = Number.MAX_VALUE;
+    // console.log(v);
+  }
+  dist[x] = 0;
+  pq.add(new Vertex(x, 0));
+  while (!pq.isEmpty()) {
+    let u = pq.poll();
+    // console.log(adj[u.v]);
+    for (let v of adj[u.v]) {
+      // console.log(v);
+      if (v.v in badNodes) {
+        continue;
+      }
+      if (u.w + v.w < dist[v.v] ) {
+        dist[v.v] = u.w + v.w;
+        pq.add(new Vertex(v.v, dist[v.v]));
+        prev[v.v] = u.v;
+      }
+    }
+  }
+  if (dist[y] != Number.MAX_VALUE) {
+    let v = y;
+    result.push(v);
+    while (v != x) {
+      v = prev[v];
+      result.push(v);
+    }
+  }
+  // console.log(result, dist[y]);
+  return result;
+}
