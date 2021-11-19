@@ -6,11 +6,6 @@ const fs = require('fs');
 const fastPriorityQueue = require('fastpriorityqueue');
 
 // Loading edges
-const EDGE_COST = {
-  mesh: 10,
-  wds: 100
-}
-// TODO: Change path cost from
 let adj;
 edgeLoader('scripts/edges_set.csv', updateAdj);
 console.log('edge cost loaded');
@@ -97,7 +92,7 @@ function edgeLoader(filename, callback) {
   let adj = {};
   
   fs.createReadStream(filename)
-  .pipe(csv(['x', 'y', 'type']))
+  .pipe(csv(['x', 'y', 'cost']))
   .on('data', (data) => {
     // Eliminate duplicates
     const str1 = data['x'] + data['y'];
@@ -105,9 +100,7 @@ function edgeLoader(filename, callback) {
     if (!edgeSet.has(str1) && !edgeSet.has(str2)) {
       edgeSet.add(str1);
       let cost = 20;
-      if (data['type'] == 'mesh' || data['type'] == 'wds') {
-        cost = EDGE_COST[data['type']]
-      }
+      cost = data['cost']
       // data['cost'] = EDGE_COST[data['type']];
       // edges.push(data);
       if (adj[data['x']] == undefined) {
