@@ -66,6 +66,14 @@ app.get("/fetch_nodes", async (req, res) => {
     row['lat'] = readData.data.values[i][23];
     row['lng'] = readData.data.values[i][24];
     row['alt'] = readData.data.values[i][25];
+    row['active'] = row['nn'] !== "";
+    if (readData.data.values[i][4].toLowerCase().includes("hub")) {
+      row['type'] = "hub";
+    } else if (readData.data.values[i][3].toLowerCase().includes("supernode")) {
+      row['type'] = "supernode";
+    } else {
+      row['type'] = "node";
+    }
     data.push(row);
   }
   // Send the data reae with the response
