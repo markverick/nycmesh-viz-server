@@ -137,7 +137,8 @@ function updateAdj(val) {
 
 
 // Using Dijkstra Algorithm
-function pathFinding(x, y, badNodes) {
+// Swapped x and y because backtracking makes the path inversed
+function pathFinding(y, x, badNodes) {
   let pq = new fastPriorityQueue(function(a, b) {
     return a.w < b.w;
   });
