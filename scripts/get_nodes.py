@@ -66,6 +66,7 @@ if __name__ == '__main__':
 
     for node in nodes:
         if node['nn']:
+            cur_nn = node['nn'].split('-')[1] if node['nn'].startwith('x') else node['nn']
             ip_68 = '10.68.' + nn_to_ip(node['nn'])
             ip_69 = '10.69.' + nn_to_ip(node['nn'])
             routes = []
