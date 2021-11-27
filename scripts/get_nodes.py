@@ -2,7 +2,6 @@ from api_wrapper.api_helper import get_neighbors, get_interfaces
 import json
 import csv
 import multiprocessing
-import time
 import copy
 
 def nn_to_ip(nn):
@@ -35,15 +34,23 @@ def get_neighbors_and_interfaces(ip, return_neighbors, return_interfaces):
     for interface, cost in interfaces.items():
         return_interfaces[interface] = cost
 
-def get_edges(ip, edges, fail_to_connect):
+def get_edges(ip, edges, fail_to_connect, nn_to_ip_dict):
     try:
         print(f"Pinging {ip}")
         routes = get_neighbors(ip)
         interfaces = get_interfaces(ip)
         for route in routes:
             route[2] = interfaces[route[2]]
-            start = min(ip_to_nn(route[0]), ip_to_nn(route[1]))
-            end = max(ip_to_nn(route[0]), ip_to_nn(route[1]))
+            nn0 = ip_to_nn(route[0])
+            nn1 = ip_to_nn(route[1])
+
+            # populate dictionary entries
+            nn_to_ip_dict[nn0] = route[0]
+            nn_to_ip_dict[nn1] = route[1]
+
+            # add path entry (minimum cost)
+            start = min(nn0, nn1)
+            end = max(nn0, nn1)
             start_end = (start, end)
             cost = route[2]
             if start_end in edges:
@@ -63,17 +70,18 @@ if __name__ == '__main__':
     manager = multiprocessing.Manager()
     edges = manager.dict()
     fail_to_connect = manager.dict()
+    nn_to_ip_dict = manager.dict()
 
     for node in nodes:
         if node['nn']:
-            cur_nn = node['nn'].split('-')[1] if node['nn'].startwith('x') else node['nn']
+            cur_nn = node['nn'].split('-')[1] if node['nn'].startswith('x') else node['nn']
             ip_68 = '10.68.' + nn_to_ip(node['nn'])
             ip_69 = '10.69.' + nn_to_ip(node['nn'])
             routes = []
             for ip in [ip_68, ip_69]:
-                p = multiprocessing.Process(target=get_edges, args=(ip, edges, fail_to_connect))
+                p = multiprocessing.Process(target=get_edges, args=(ip, edges, fail_to_connect, nn_to_ip_dict))
                 p.start()
-                p.join(3)
+                p.join(10)
                 if p.is_alive():
                     p.kill()
                     fail_to_connect[ip] = ip_to_nn(ip)
@@ -89,11 +97,14 @@ if __name__ == '__main__':
     for fail_ip, fail_nn in fail_to_connect.items():
         output_fail_to_connect.append([fail_ip, fail_nn])
 
-    with open("edges_set2.csv", "w") as f:
+    with open("outputs/edges_set.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerows(output_edges)
 
-    with open("failed_to_connect2.csv", "w") as f:
+    with open("outputs/failed_to_connect.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerows(output_fail_to_connect)
-    
+
+    with open("outputs/nn_to_ip_dict.csv", "w") as f:
+        writer = csv.writer(f)
+        writer.writerows(nn_to_ip_dict)
