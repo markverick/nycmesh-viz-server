@@ -171,10 +171,14 @@ function pathFinding(y, x, badNodes) {
   }
   if (dist[y] != Number.MAX_VALUE) {
     let v = y;
-    result.push(v);
+    if (!v.startsWith('sxt')) {
+      result.push(v);
+    }
     while (v != x) {
       v = prev[v];
-      result.push(v);
+      if (!v.startsWith('sxt')) {
+        result.push(v);
+      }
     }
   }
   // console.log(result, dist[y]);
