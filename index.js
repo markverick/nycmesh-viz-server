@@ -172,9 +172,9 @@ function pathFinding(y, x, badNodes) {
       result.push( {node: v, weight: 0} );
     }
     let cost = 0;
-    while (prev[v][0] != x) {
-      v = prev[v][0];
+    while (v != x) {
       w = prev[v][1];
+      v = prev[v][0];
       // console.log(v, w)
       cost += w;
       if (!v.startsWith('sxt')) {
