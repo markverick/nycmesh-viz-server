@@ -7,7 +7,7 @@ const fastPriorityQueue = require('fastpriorityqueue');
 
 // Loading edges
 let adj;
-edgeLoader('scripts/edges_set.csv', updateAdj);
+edgeLoader('scripts/edges_set2.csv', updateAdj);
 console.log('edge cost loaded');
 
 // Initilize express
@@ -32,6 +32,10 @@ app.get("/path_finding", async (req, res) => {
   let x = req.query['node1'];
   let y = req.query['node2'];
   let badNodes = req.query['disabled_node'] == undefined? []: req.query['disabled_node'].split(',');
+  if (adj[x] == undefined || adj[y] == undefined) {
+    res.status(400).send("Nodes not found")
+    return;
+  }
   result = pathFinding(x, y, badNodes);
   res.send(result);
 });
@@ -95,31 +99,24 @@ class Vertex {
 
 // Return adjacency list
 function edgeLoader(filename, callback) {
-  let edgeSet = new Set();
   // let edges = [];
   let adj = {};
   
   fs.createReadStream(filename)
   .pipe(csv(['x', 'y', 'cost']))
   .on('data', (data) => {
-    // Eliminate duplicates
-    const str1 = data['x'] + data['y'];
-    const str2 = data['y'] + data['x'];
-    if (!edgeSet.has(str1) && !edgeSet.has(str2)) {
-      edgeSet.add(str1);
-      let cost = 20;
-      cost = data['cost']
-      // data['cost'] = EDGE_COST[data['type']];
-      // edges.push(data);
-      if (adj[data['x']] == undefined) {
-        adj[data['x']] = [];
-      }
-      if (adj[data['y']] == undefined) {
-        adj[data['y']] = [];
-      }
-      adj[data['x']].push(new Vertex(data['y'], cost));
-      adj[data['y']].push(new Vertex(data['x'], cost));
+    // Duplicates should already be handled in the script
+    let x = data['x'].startsWith('sxt')? data['x'].slice(0, 4) : data['x']
+    let y = data['y'].startsWith('sxt')? data['y'].slice(0, 4) : data['y']
+    let cost = data['cost'];
+    if (adj[x] == undefined) {
+      adj[x] = [];
     }
+    if (adj[y] == undefined) {
+      adj[y] = [];
+    }
+    adj[x].push(new Vertex(y, cost));
+    adj[y].push(new Vertex(x, cost));
   })
 
   .on('end', () => {
