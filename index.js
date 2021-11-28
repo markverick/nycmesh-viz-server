@@ -108,7 +108,7 @@ function edgeLoader(filename, callback) {
     // Duplicates should already be handled in the script
     let x = data['x'].startsWith('sxt')? data['x'].slice(0, 4) : data['x']
     let y = data['y'].startsWith('sxt')? data['y'].slice(0, 4) : data['y']
-    let cost = data['cost'];
+    let cost = Number(data['cost']);
     if (adj[x] == undefined) {
       adj[x] = [];
     }
@@ -162,19 +162,24 @@ function pathFinding(y, x, badNodes) {
       if (u.w + v.w < dist[v.v] ) {
         dist[v.v] = u.w + v.w;
         pq.add(new Vertex(v.v, dist[v.v]));
-        prev[v.v] = u.v;
+        prev[v.v] = [u.v, v.w];
       }
     }
   }
   if (dist[y] != Number.MAX_VALUE) {
     let v = y;
     if (!v.startsWith('sxt')) {
-      result.push(v);
+      result.push( {node: v, weight: 0} );
     }
-    while (v != x) {
-      v = prev[v];
+    let cost = 0;
+    while (prev[v][0] != x) {
+      v = prev[v][0];
+      w = prev[v][1];
+      // console.log(v, w)
+      cost += w;
       if (!v.startsWith('sxt')) {
-        result.push(v);
+        result.push( {node: v, weight: cost} );
+        cost = 0;
       }
     }
   }
