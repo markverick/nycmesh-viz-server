@@ -4,7 +4,7 @@ import csv
 # print(get_neighbors('10.69.40.26'))
 # print(get_neighbors_verbose('10.69.40.26'))
 
-unseen = {'10.69.40.26'}
+unseen = {'10.69.7.13', '10.69.2.27'}
 seen = set()
 fail_to_connect = set()
 edges = list()
