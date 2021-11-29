@@ -29,6 +29,10 @@ while(len(unseen) > 0):
     route[2] = interfaces[route[2]]
 
     if address not in seen:
+      if (address.startswith('10.70')):
+        print('skipping: ' + address)
+        continue
+
       print(route)
       unseen.add(address)
       edges.append(route)
