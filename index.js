@@ -73,28 +73,45 @@ class Vertex {
 
 // Return adjacency list
 function edgeLoader(filename, callback) {
-  // let edges = [];
+  let edges = [];
   let adj = {};
+  let visibleNodes = {};
   
   fs.createReadStream(filename)
   .pipe(csv(['x', 'y', 'cost']))
   .on('data', (data) => {
     // Duplicates should already be handled in the script
-    let x = data['x'].startsWith('sxt')? data['x'].slice(0, 4) : data['x']
-    let y = data['y'].startsWith('sxt')? data['y'].slice(0, 4) : data['y']
-    let cost = Number(data['cost']);
-    if (adj[x] == undefined) {
-      adj[x] = [];
+    if (!data[x].startsWith('sxt')) {
+      visibleNodes[data[x]] = true
     }
-    if (adj[y] == undefined) {
-      adj[y] = [];
+    if (!data[y].startsWith('sxt')) {
+      visibleNodes[data[y]] = true;
     }
-    adj[x].push(new Vertex(y, cost));
-    adj[y].push(new Vertex(x, cost));
+    edges.push(data)
   })
 
   .on('end', () => {
     // console.log(adj);
+    for (data of edges) {
+      // Need to do dirty work and read twice because the format is not ideal to work
+      let x = data['x'].startsWith('sxt')? 'sxt' + data['x'].slice(5) : data['x']
+      let y = data['y'].startsWith('sxt')? 'sxt' + data['y'].slice(5) : data['y']
+      if (x.startsWith('sxt') && visibleNodes[data['x'].slice(5)] != undefined) {
+        x = data['x'].slice(5)
+      }
+      if (y.startsWith('sxt') && visibleNodes[data['y'].slice(5)] != undefined) {
+        y = data['y'].slice(5)
+      }
+      let cost = Number(data['cost']);
+      if (adj[x] == undefined) {
+        adj[x] = [];
+      }
+      if (adj[y] == undefined) {
+        adj[y] = [];
+      }
+      adj[x].push(new Vertex(y, cost));
+      adj[y].push(new Vertex(x, cost));
+    }
     callback(adj);
     return;
   });
