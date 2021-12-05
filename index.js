@@ -7,7 +7,7 @@ const fastPriorityQueue = require('fastpriorityqueue');
 
 // Loading edges
 let adj;
-edgeLoader('scripts/edges_set2.csv', updateAdj);
+edgeLoader('scripts/outputs/edges_set.csv', updateAdj);
 console.log('edge cost loaded');
 
 // Initilize express
@@ -41,48 +41,22 @@ app.get("/path_finding", async (req, res) => {
 });
 
 app.get("/fetch_nodes", async (req, res) => {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: "keys.json", //the key file
-    //url to spreadsheets API
-    scopes: "https://www.googleapis.com/auth/spreadsheets.readonly", 
-  });
-
-  // Auth client Object
-  const authClientObject = await auth.getClient();
-
-  // Google sheets instance
-  const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
-
-  const spreadsheetId = "1gEnDuwqIQtm-uWsF7ZlXEDZWEyrGtqpj-mGXhQldSK4";
-
-  // Read front the spreadsheet
-  const readData = await googleSheetsInstance.spreadsheets.values.get({
-    auth, //auth object
-    spreadsheetId, // spreadsheet id
-    range: "Form Responses 1!P2:AO10487", //range of cells to read from.
+  dict = {}
+  json = fs.readFileSync('scripts/outputs/nodes.json');
+  result = JSON.parse(json);
+  fs.createReadStream('scripts/outputs/nn_to_ip_dict.csv')
+  .pipe(csv(['nn', 'ip']))
+  .on('data', (data) => {
+    dict[data.nn] = data.ip;
   })
-  let data = [];
-  for (let i = 0; i < readData.data.values.length; i++) {
-    if (readData.data.values[i][0] != 'Installed') continue;
-    let row = {};
-    row['id'] = readData.data.values[i][8];
-    row['nn'] = readData.data.values[i][9];
-    row['lat'] = readData.data.values[i][23];
-    row['lng'] = readData.data.values[i][24];
-    row['alt'] = readData.data.values[i][25];
-    row['active'] = row['nn'] !== "";
-    if (readData.data.values[i][4].toLowerCase().includes("hub")) {
-      row['type'] = "hub";
-    } else if (readData.data.values[i][3].toLowerCase().includes("supernode")) {
-      row['type'] = "supernode";
-    } else {
-      row['type'] = "node";
+  .on('end', () => {
+    for (let i = 0; i < result.length; i++) {
+      if (dict[result[i]['nn']] != undefined) {
+        result[i]['ip'] = dict[result[i]['nn']];
+      }
     }
-    data.push(row);
-  }
-  // Send the data reae with the response
-  // console.log(readData.data.values);
-  res.send(data)
+    res.send(result);
+  })
 })
 
 const port = 3000;
