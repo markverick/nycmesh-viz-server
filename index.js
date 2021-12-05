@@ -111,36 +111,39 @@ function updateAdj(val) {
 // Swapped x and y because backtracking makes the path inversed
 function pathFinding(y, x, badNodes) {
   let pq = new fastPriorityQueue(function(a, b) {
-    return a.w < b.w;
+    if (a.w[0] == b.w[0]) {
+      return a.w[1] < b.w[1];
+    } else {
+      return a.w[0] < b.w[0];
+    }
   });
   let dist = {};
   let prev = {};
   let result = [];
   // console.log(badNodes)
   for (let v in adj) {
-    dist[v] = Number.MAX_VALUE;
+    dist[v] = [Number.MAX_VALUE, Number.MAX_VALUE];
     // console.log(v);
   }
-  dist[x] = 0;
-  pq.add(new Vertex(x, 0));
+  dist[x] = [0, 0];
+  pq.add(new Vertex(x, [0, 0]));
   while (!pq.isEmpty()) {
     let u = pq.poll();
-    if (badNodes.includes(u.u)) {
+    if (badNodes.includes(u.v)) {
       continue;
     }
-    // console.log(adj[u.v]);
     for (let v of adj[u.v]) {
       if (badNodes.includes(v.v)) {
         continue;
       }
-      if (u.w + v.w < dist[v.v] ) {
-        dist[v.v] = u.w + v.w;
+      if (u.w[0] + v.w < dist[v.v][0] && u.w[1] + 1 < dist[v.v][1]) {
+        dist[v.v] = [u.w[0] + v.w, u.w[1] + 1];
         pq.add(new Vertex(v.v, dist[v.v]));
         prev[v.v] = [u.v, v.w];
       }
     }
   }
-  if (dist[y] != Number.MAX_VALUE) {
+  if (dist[y][0] != Number.MAX_VALUE) {
     let v = y;
     if (!v.startsWith('sxt')) {
       result.push( {node: v, weight: 0} );
