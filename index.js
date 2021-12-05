@@ -59,6 +59,11 @@ app.get("/fetch_nodes", async (req, res) => {
   })
 })
 
+app.get("/fetch_edges", async (req, res) => {
+  let v = req.query['node'];
+  res.send(adj[v]);
+})
+
 const port = 3000;
 app.listen(port, ()=>{
     console.log(`server started on ${port}`)
@@ -81,21 +86,19 @@ function edgeLoader(filename, callback) {
   .pipe(csv(['x', 'y', 'cost']))
   .on('data', (data) => {
     // Duplicates should already be handled in the script
-    if (!data[x].startsWith('sxt')) {
-      visibleNodes[data[x]] = true
+    if (!data.x.startsWith('sxt')) {
+      visibleNodes[data.x] = true
     }
-    if (!data[y].startsWith('sxt')) {
-      visibleNodes[data[y]] = true;
+    if (!data.y.startsWith('sxt')) {
+      visibleNodes[data.y] = true;
     }
     edges.push(data)
   })
-
   .on('end', () => {
-    // console.log(adj);
     for (data of edges) {
       // Need to do dirty work and read twice because the format is not ideal to work
-      let x = data['x'].startsWith('sxt')? 'sxt' + data['x'].slice(5) : data['x']
-      let y = data['y'].startsWith('sxt')? 'sxt' + data['y'].slice(5) : data['y']
+      let x = data['x']
+      let y = data['y']
       if (x.startsWith('sxt') && visibleNodes[data['x'].slice(5)] != undefined) {
         x = data['x'].slice(5)
       }
@@ -112,6 +115,7 @@ function edgeLoader(filename, callback) {
       adj[x].push(new Vertex(y, cost));
       adj[y].push(new Vertex(x, cost));
     }
+    // console.log(adj)
     callback(adj);
     return;
   });
@@ -140,7 +144,6 @@ function pathFinding(y, x, badNodes) {
   // console.log(badNodes)
   for (let v in adj) {
     dist[v] = [Number.MAX_VALUE, Number.MAX_VALUE];
-    // console.log(v);
   }
   dist[x] = [0, 0];
   pq.add(new Vertex(x, [0, 0]));
@@ -149,6 +152,7 @@ function pathFinding(y, x, badNodes) {
     if (badNodes.includes(u.v)) {
       continue;
     }
+    // console.log(u.v, u.w);
     for (let v of adj[u.v]) {
       if (badNodes.includes(v.v)) {
         continue;
