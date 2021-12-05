@@ -61,7 +61,11 @@ app.get("/fetch_nodes", async (req, res) => {
 
 app.get("/fetch_edges", async (req, res) => {
   let v = req.query['node'];
-  res.send(adj[v]);
+  let result = [];
+  for (data of adj[v]) {
+    result.push({ "nn": data.v, "cost": data.w });
+  }
+  res.send(result);
 })
 
 const port = 3000;
