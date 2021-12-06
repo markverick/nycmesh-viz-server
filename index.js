@@ -1,13 +1,18 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { google } = require("googleapis");
+const { spawn } = require('child_process');
 const csv = require('csv-parser');
 const fs = require('fs');
 const fastPriorityQueue = require('fastpriorityqueue');
 
 // Loading edges
 let adj;
+let visibleNodes = {};
 edgeLoader('scripts/outputs/edges_set.csv', updateAdj);
+// Loading nn-ip dictionary
+let nnToIp = {}
+nnToIpLoader('scripts/outputs/nn_to_ip_dict.csv', updateDict);
 console.log('edge cost loaded');
 
 // Initilize express
@@ -63,9 +68,35 @@ app.get("/fetch_edges", async (req, res) => {
   let v = req.query['node'];
   let result = [];
   for (data of adj[v]) {
-    result.push({ "nn": data.v, "cost": data.w });
+    node = mergeSxt(data.v);
+    if (!node.startsWith('sxt')) {
+      result.push({ "nn": data.v, "cost": data.w });
+    }
   }
   res.send(result);
+})
+
+app.get("/fetch_edges_hard", async (req, res) => {
+  let v = req.query['node'];
+  if (nnToIp[v] == undefined) {
+    res.status(400).send('node not found');
+    return;
+  }
+  let result = [];
+  let python = spawn('python3', ['scripts/edge_request.py', nnToIp[v]]);
+  python.on('close', (code) => {
+    fs.createReadStream('scripts/outputs/temp/edge_request.csv')
+    .pipe(csv(['x', 'y', 'cost']))
+    .on('data', (data) => {
+      let node = mergeSxt(data.y);
+      if (!node.startsWith('sxt')) {
+        result.push({ "nn": data.y, "cost": data.cost })
+      }
+    })
+    .on('end', () => {
+      res.send(result);
+    })
+  })
 })
 
 const port = 3000;
@@ -84,7 +115,6 @@ class Vertex {
 function edgeLoader(filename, callback) {
   let edges = [];
   let adj = {};
-  let visibleNodes = {};
   
   fs.createReadStream(filename)
   .pipe(csv(['x', 'y', 'cost']))
@@ -101,14 +131,8 @@ function edgeLoader(filename, callback) {
   .on('end', () => {
     for (data of edges) {
       // Need to do dirty work and read twice because the format is not ideal to work
-      let x = data['x']
-      let y = data['y']
-      if (x.startsWith('sxt') && visibleNodes[data['x'].slice(5)] != undefined) {
-        x = data['x'].slice(5)
-      }
-      if (y.startsWith('sxt') && visibleNodes[data['y'].slice(5)] != undefined) {
-        y = data['y'].slice(5)
-      }
+      let x = mergeSxt(data['x']);
+      let y = mergeSxt(data['y']);
       let cost = Number(data['cost']);
       if (adj[x] == undefined) {
         adj[x] = [];
@@ -130,7 +154,31 @@ function updateAdj(val) {
   adj = val;
 }
 
+// Load nn-to-ip dictionary from the csv
+function nnToIpLoader(filename, callback) {
+  dict = {}
+  fs.createReadStream(filename)
+  .pipe(csv(['nn', 'ip']))
+  .on('data', (data) => {
+    dict[data['nn']] = data['ip']
+  })
+  .on('end', () => {
+    callback(dict);
+    return;
+  });
+}
 
+// Callback function to update nn-to-ip dictionary
+function updateDict(val) {
+  nnToIp = val;
+}
+
+function mergeSxt(node) {
+  if (node.startsWith('sxt') && visibleNodes[node.slice(5)] != undefined) {
+    return node.slice(5)
+  }
+  return node;
+}
 
 // Using Dijkstra Algorithm
 // Swapped x and y because backtracking makes the path inversed

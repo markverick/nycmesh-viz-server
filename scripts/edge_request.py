@@ -23,10 +23,11 @@ if __name__ == '__main__':
     route[1] = ip_to_nn(route[1])
 
     output.append(route)
-
-  with open("outputs/temp/edge_request.csv", "w") as f:
-      writer = csv.writer(f)
-      writer.writerows(output)
+  print(output)
+  sys.stdout.flush()
+  # with open("outputs/temp/edge_request.csv", "w") as f:
+  #     writer = csv.writer(f)
+  #     writer.writerows(output)
 
 
 
