@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { google } = require("googleapis");
-const { spawn } = require('child_process');
+const { PythonShell } = require('python-shell')
 const csv = require('csv-parser');
 const fs = require('fs');
 const fastPriorityQueue = require('fastpriorityqueue');
@@ -67,10 +67,19 @@ app.get("/fetch_nodes", async (req, res) => {
 app.get("/fetch_edges", async (req, res) => {
   let v = req.query['node'];
   let result = [];
+  if (adj[v] == undefined) {
+    res.status(400).send('node not found')
+    return;
+  }
+  dict = {}
   for (data of adj[v]) {
     node = mergeSxt(data.v);
     if (!node.startsWith('sxt')) {
-      result.push({ "nn": data.v, "cost": data.w });
+      // Sanitize output
+      if (dict[data.v] == undefined) {
+        result.push({ "nn": data.v, "cost": data.w });
+        dict[data.v] = data.w
+      }
     }
   }
   res.send(result);
@@ -83,20 +92,25 @@ app.get("/fetch_edges_hard", async (req, res) => {
     return;
   }
   let result = [];
-  let python = spawn('python3', ['scripts/edge_request.py', nnToIp[v]]);
-  python.on('close', (code) => {
-    fs.createReadStream('scripts/outputs/temp/edge_request.csv')
-    .pipe(csv(['x', 'y', 'cost']))
-    .on('data', (data) => {
-      let node = mergeSxt(data.y);
+  let options = {
+    mode: 'text',
+    pythonOptions: ['-u'],
+    scriptPath: 'scripts',
+    args: [nnToIp[v]]
+  };
+  PythonShell.run('edge_request.py', options, function (err, results) {
+    if (err) throw err;
+    // results is an array consisting of messages collected during execution
+    edges = JSON.parse(results)
+    for (edge of edges) {
+      let node = mergeSxt(edge[1]);
       if (!node.startsWith('sxt')) {
-        result.push({ "nn": data.y, "cost": data.cost })
+        result.push({ "nn": node, "cost": Number(edge[2])})
       }
-    })
-    .on('end', () => {
-      res.send(result);
-    })
-  })
+    }
+    res.send(result);
+  });
+  
 })
 
 const port = 3000;

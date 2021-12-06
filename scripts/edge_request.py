@@ -4,6 +4,7 @@
 from api_wrapper.api_helper import get_neighbors, get_interfaces, ip_to_nn
 import sys
 import csv
+import json
 
 if __name__ == '__main__':
   output = list()
@@ -23,7 +24,8 @@ if __name__ == '__main__':
     route[1] = ip_to_nn(route[1])
 
     output.append(route)
-  print(output)
+
+  print(json.dumps(output))
   sys.stdout.flush()
   # with open("outputs/temp/edge_request.csv", "w") as f:
   #     writer = csv.writer(f)
