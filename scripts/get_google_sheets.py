@@ -19,17 +19,16 @@ try:
 
     nodes_list = []
     for node in result:
-      if node[0] != "Installed":
+      if node[0] == "":
         continue
 
       print(node)
       node_entry = {}
       node_entry['id'] = node[8]
-      node_entry['nn'] = node[9]
+      node_entry['nn'] = node[8] if "x" in node[8] else node[9]
       node_entry['lat'] = node[23]
       node_entry['lng'] = node[24]
       node_entry['alt'] = node[25] if len(node) > 25 else ''
-      node_entry['active'] = node_entry['nn'] != ""
 
       if "hub" in node[4].lower():
         node_entry['type'] = "hub"
