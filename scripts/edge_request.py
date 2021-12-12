@@ -4,9 +4,22 @@
 from api_wrapper.api_helper import get_neighbors, get_interfaces, ip_to_nn
 import sys
 import json
+import copy
+#import csv
 
-def get_nnroutes_from_ip(ip):
+def insert_min_edge(route, dict) :
+  start_end = (route[0], route[1])
+  cost = route[2]
+  if start_end in dict:
+      dict[start_end] = min(cost, dict[start_end])
+  else:
+      dict[start_end] = cost
+
+def get_nnroutes_from_ip(ip, seen_nn, cost):
   output = list()
+  root_nn = ip_to_nn(ip)
+  new_seen_nn = copy.deepcopy(seen_nn)
+  new_seen_nn.append(root_nn)
 
   try:
     routes = get_neighbors(ip)
@@ -16,15 +29,18 @@ def get_nnroutes_from_ip(ip):
 
   for route in routes:
     dest_ip = route[1]
-    route[2] = interfaces[route[2]]
-    route[0] = ip_to_nn(route[0])
+    route[2] = int(interfaces[route[2]]) + cost
+    route[0] = root_nn
     route[1] = ip_to_nn(route[1])
 
     if 'sxt' in route[1]:
-      print('sxt:' + route[1])
-      bridge_routes = get_nnroutes_from_ip(dest_ip)
+      #print('sxt:' + route[1])
+      if route[1] in new_seen_nn:
+        continue
+
+      bridge_routes = get_nnroutes_from_ip(dest_ip, new_seen_nn, route[2])
       for bridge_route in bridge_routes:
-        bridge_route[0] = route[0]
+        bridge_route[0] = root_nn
         output.append(bridge_route)
     else:
       output.append(route)
@@ -38,7 +54,16 @@ if __name__ == '__main__':
 
   ip = sys.argv[1]
 
-  output = get_nnroutes_from_ip(ip)
+  edges = get_nnroutes_from_ip(ip, [], 0)
+  cleaned_edges = {}
+  for edge in edges:
+    insert_min_edge(edge, cleaned_edges)
+
+  output = []
+
+  for edge, cost in cleaned_edges.items():
+      output.append([edge[0], edge[1], cost])
+
 
   print(json.dumps(output))
   sys.stdout.flush()
