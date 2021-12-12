@@ -39,9 +39,20 @@ while(len(unseen) > 0):
 
 edges_nn = [[ip_to_nn(edge[0]), ip_to_nn(edge[1]), edge[2]] for edge in edges]
 
+other_edges_nn = [
+  ["3461", "5916", 5],
+  ["5916", "1340", 5],
+  ["1340" ,"3461", 64],
+  ["1933", "1932", 2],
+  ["1933", "5916", 10],
+  ["1417", "1340", 10],
+  ["2463", "1932", 10],
+  ["2274", "2463", 9]
+]
+
 with open("outputs/edges_set.csv", "w") as f:
     writer = csv.writer(f)
-    writer.writerows(edges_nn)
+    writer.writerows(edges_nn + other_edges_nn)
 
 with open("outputs/failed_to_connect.csv", "w") as f:
     writer = csv.writer(f)

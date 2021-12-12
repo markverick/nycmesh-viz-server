@@ -76,7 +76,7 @@ app.get("/fetch_edges", async (req, res) => {
     node = mergeSxt(data.v);
     if (!node.startsWith('sxt')) {
       // Sanitize output
-      if (dict[data.v] == undefined) {
+      if (dict[data.v] == undefined && data.v != v) {
         result.push({ "nn": data.v, "cost": data.w });
         dict[data.v] = data.w
       }
@@ -86,30 +86,37 @@ app.get("/fetch_edges", async (req, res) => {
 })
 
 app.get("/fetch_edges_hard", async (req, res) => {
-  let v = req.query['node'];
-  if (nnToIp[v] == undefined) {
-    res.status(400).send('node not found');
-    return;
-  }
-  let result = [];
-  let options = {
-    mode: 'text',
-    pythonOptions: ['-u'],
-    scriptPath: 'scripts',
-    args: [nnToIp[v]]
-  };
-  PythonShell.run('edge_request.py', options, function (err, results) {
-    if (err) throw err;
-    // results is an array consisting of messages collected during execution
-    edges = JSON.parse(results)
-    for (edge of edges) {
-      let node = mergeSxt(edge[1]);
-      if (!node.startsWith('sxt')) {
-        result.push({ "nn": node, "cost": Number(edge[2])})
-      }
+  try {
+    let v = req.query['node'];
+    if (nnToIp[v] == undefined) {
+      res.status(400).send('node not found');
+      return;
     }
-    res.send(result);
-  });
+    let result = [];
+    let options = {
+      mode: 'text',
+      pythonOptions: ['-u'],
+      scriptPath: 'scripts',
+      args: [nnToIp[v]]
+    };
+    PythonShell.run('edge_request.py', options, function (err, results) {
+      if (err) {
+        res.status(500).send('database error');
+        return;
+      };
+      // results is an array consisting of messages collected during execution
+      edges = JSON.parse(results)
+      for (edge of edges) {
+        let node = mergeSxt(edge[1]);
+        if (!node.startsWith('sxt')) {
+          result.push({ "nn": node, "cost": Number(edge[2])})
+        }
+      }
+      res.send(result);
+    });
+  } catch {
+    res.status(500).send('database error');
+  }
   
 })
 
@@ -223,7 +230,7 @@ function pathFinding(y, x, badNodes) {
       if (badNodes.includes(v.v)) {
         continue;
       }
-      if (u.w[0] + v.w < dist[v.v][0] && u.w[1] + 1 < dist[v.v][1]) {
+      if (u.w[0] + v.w < dist[v.v][0] ||  (u.w[0] + v.w == dist[v.v][0] && u.w[1] + 1 < dist[v.v][1])) {
         dist[v.v] = [u.w[0] + v.w, u.w[1] + 1];
         pq.add(new Vertex(v.v, dist[v.v]));
         prev[v.v] = [u.v, v.w];
