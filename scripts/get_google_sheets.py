@@ -1,7 +1,7 @@
 import os
 import json
 
-from googleapiclient import discovery
+from apiclient import discovery
 from google.oauth2 import service_account
 
 try:
