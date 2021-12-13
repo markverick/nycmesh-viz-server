@@ -1,7 +1,7 @@
 import os
 import json
 
-from apiclient import discovery
+from googleapiclient import discovery
 from google.oauth2 import service_account
 
 try:
@@ -19,7 +19,7 @@ try:
 
     nodes_list = []
     for node in result:
-      if node[0] == "":
+      if node[8] == "":
         continue
 
       print(node)
