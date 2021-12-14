@@ -4,6 +4,9 @@ import json
 from apiclient import discovery
 from google.oauth2 import service_account
 
+def try_get(index, list):
+  return list[index] if len(list) > index else ''
+
 try:
     scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
     secret_file = os.path.join(os.getcwd(), 'credentials.json')
@@ -24,11 +27,11 @@ try:
 
       print(node)
       node_entry = {}
-      node_entry['id'] = node[8]
-      node_entry['nn'] = node[8] if "x" in node[8] else node[9]
-      node_entry['lat'] = node[23]
-      node_entry['lng'] = node[24]
-      node_entry['alt'] = node[25] if len(node) > 25 else ''
+      node_entry['id'] = try_get(8, node)
+      node_entry['nn'] = try_get(8, node) if "x" in try_get(8, node) else try_get(9, node)
+      node_entry['lat'] = try_get(23, node)
+      node_entry['lng'] = try_get(24, node)
+      node_entry['alt'] = try_get(25, node)
 
       if "hub" in node[4].lower():
         node_entry['type'] = "hub"
